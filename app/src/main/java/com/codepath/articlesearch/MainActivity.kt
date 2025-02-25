@@ -9,9 +9,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.codepath.articlesearch.databinding.ActivityMainBinding
 import com.codepath.asynchttpclient.AsyncHttpClient
 import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler
+import com.google.gson.Gson
 import kotlinx.serialization.json.Json
 import okhttp3.Headers
 import org.json.JSONException
+import org.json.JSONObject
 
 fun createJson() = Json {
     isLenient = true
@@ -27,6 +29,7 @@ private const val ARTICLE_SEARCH_URL =
 class MainActivity : AppCompatActivity() {
     private lateinit var articlesRecyclerView: RecyclerView
     private lateinit var binding: ActivityMainBinding
+    private val articles = mutableListOf<Article>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,10 +41,14 @@ class MainActivity : AppCompatActivity() {
         articlesRecyclerView = findViewById(R.id.articles)
         // TODO: Set up ArticleAdapter with articles
 
+        val articleAdapter = ArticleAdapter(this, articles)
+        articlesRecyclerView.adapter = articleAdapter
+
         articlesRecyclerView.layoutManager = LinearLayoutManager(this).also {
             val dividerItemDecoration = DividerItemDecoration(this, it.orientation)
             articlesRecyclerView.addItemDecoration(dividerItemDecoration)
         }
+
 
         val client = AsyncHttpClient()
         client.get(ARTICLE_SEARCH_URL, object : JsonHttpResponseHandler() {
@@ -58,10 +65,18 @@ class MainActivity : AppCompatActivity() {
                 Log.i(TAG, "Successfully fetched articles: $json")
                 try {
                     // TODO: Create the parsedJSON
+                    //use jsonObject.getString("<key_name>")
 
                     // TODO: Do something with the returned json (contains article information)
-
+                    val parsedJson = createJson().decodeFromString(
+                        SearchNewsResponse.serializer(),
+                        json.jsonObject.toString()
+                    )
                     // TODO: Save the articles and reload the screen
+                    parsedJson.response?.docs?.let { list ->
+                        articles.addAll(list)
+                    }
+                    articleAdapter.notifyDataSetChanged()
 
                 } catch (e: JSONException) {
                     Log.e(TAG, "Exception: $e")
